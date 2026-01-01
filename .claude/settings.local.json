@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(Android)",
+      "Bash(nix flake show:*)",
+      "Bash(home-manager generations:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
