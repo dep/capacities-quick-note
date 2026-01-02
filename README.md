@@ -2,6 +2,10 @@
 
 A lightweight Android app for quickly capturing notes and sending them directly to your [Capacities.io](https://capacities.io) daily note. Built with Jetpack Compose and Material 3.
 
+Testers Google Group: https://groups.google.com/g/capacities-quick-note-testers
+
+Android App (Pre-release): https://play.google.com/apps/testing/com.dnnypck.capacitiesquicknote
+
 ## Features
 
 - **Quick Note Capture**: Simple, distraction-free text input for rapid note-taking
@@ -15,7 +19,7 @@ A lightweight Android app for quickly capturing notes and sending them directly 
 ## Requirements
 
 - Android 7.0 (API 24) or higher
-- A [Capacities.io](https://capacities.io) account
+- A [Capacities.io](https://capacities.io) Pro account
 - Capacities API key and Space ID
 
 ## Setup
