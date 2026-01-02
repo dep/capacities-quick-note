@@ -1,32 +1,55 @@
 package com.dnnypck.capacitiesquicknote.ui.settings
 
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.dnnypck.targets.data.model.Space
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +59,50 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+
+    // Backup launcher
+    val backupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val backupJson = viewModel.getBackupJson()
+                context.contentResolver.openOutputStream(it)?.use { outputStream ->
+                    outputStream.write(backupJson.toByteArray())
+                }
+                backupMessage = "Backup saved successfully"
+            } catch (e: Exception) {
+                backupMessage = "Backup failed: ${e.message}"
+            }
+        }
+    }
+
+    // Restore launcher
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                val backupJson = context.contentResolver.openInputStream(it)?.use { inputStream ->
+                    inputStream.readBytes().toString(Charsets.UTF_8)
+                }
+                backupJson?.let { json ->
+                    viewModel.restoreFromBackup(json)
+                }
+            } catch (e: Exception) {
+                backupMessage = "Restore failed: ${e.message}"
+            }
+        }
+    }
+
+    LaunchedEffect(backupMessage) {
+        backupMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            backupMessage = null
+        }
+    }
 
     LaunchedEffect(state.message) {
         state.message?.let { message ->
@@ -68,7 +135,8 @@ fun SettingsScreen(
         ) {
             Text(
                 text = "Configure your Capacities API credentials",
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
 
             OutlinedTextField(
@@ -81,25 +149,177 @@ fun SettingsScreen(
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = state.spaceId,
-                onValueChange = { viewModel.updateSpaceId(it) },
-                label = { Text("Space ID") },
-                supportingText = { Text("Go to Settings → Space settings. The space ID will be displayed there.") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
-                onClick = { viewModel.saveSettings() },
+                onClick = { viewModel.saveApiKey() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save Settings")
+                Text("Save API Key")
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Spaces",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                IconButton(onClick = { viewModel.showAddSpaceDialog() }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Space")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (state.spaces.isEmpty()) {
+                Text(
+                    text = "No spaces configured",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(state.spaces) { space ->
+                        SpaceListItem(
+                            space = space,
+                            onEdit = { viewModel.showEditSpaceDialog(space) },
+                            onDelete = { viewModel.deleteSpace(space.id) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Backup & Restore",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                        backupLauncher.launch("capacities_backup_$timestamp.json")
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Backup Settings")
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        restoreLauncher.launch(arrayOf("application/json"))
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Restore Settings")
+                }
+            }
+        }
+
+        if (state.showAddDialog) {
+            SpaceDialog(
+                space = state.editingSpace,
+                onDismiss = { viewModel.hideSpaceDialog() },
+                onSave = { spaceId, nickname ->
+                    viewModel.saveSpace(spaceId, nickname)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun SpaceListItem(
+    space: Space,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = space.nickname ?: "Unnamed Space",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = space.id,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
             }
         }
     }
+}
+
+@Composable
+fun SpaceDialog(
+    space: Space?,
+    onDismiss: () -> Unit,
+    onSave: (spaceId: String, nickname: String?) -> Unit
+) {
+    var spaceId by remember { mutableStateOf(space?.id ?: "") }
+    var nickname by remember { mutableStateOf(space?.nickname ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (space == null) "Add Space" else "Edit Space") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = spaceId,
+                    onValueChange = { spaceId = it },
+                    label = { Text("Space ID") },
+                    supportingText = { Text("Go to Settings → Space settings. The space ID will be displayed there.") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = nickname,
+                    onValueChange = { nickname = it },
+                    label = { Text("Nickname (optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(spaceId, nickname.ifBlank { null }) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

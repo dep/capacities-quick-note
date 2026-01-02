@@ -15,10 +15,14 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.dnnypck.capacitiesquicknote.ui.main.components.ContentTextField
 import com.dnnypck.capacitiesquicknote.ui.main.components.SendButton
+import com.dnnypck.targets.data.model.Space
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +55,7 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        viewModel.checkCredentials()
+        viewModel.refreshSpaces()
     }
 
     LaunchedEffect(sharedText) {
@@ -92,6 +97,15 @@ fun MainScreen(
                 .padding(16.dp)
         ) {
                 if (state.hasCredentials) {
+                SpaceSelector(
+                    spaces = state.availableSpaces,
+                    selectedSpaceId = state.selectedSpaceId,
+                    onSpaceSelected = { viewModel.selectSpace(it) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 ContentTextField(
                     value = state.content,
                     onValueChange = { viewModel.updateContent(it) },
@@ -179,6 +193,64 @@ fun MainScreen(
                         Text("Go to Settings")
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SpaceSelector(
+    spaces: List<Space>,
+    selectedSpaceId: String?,
+    onSpaceSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedSpace = spaces.find { it.id == selectedSpaceId }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = selectedSpace?.getDisplayName() ?: "Select Space",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Target Space") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable)
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            spaces.forEach { space ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(
+                                text = space.nickname ?: "Unnamed Space",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = space.id,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    onClick = {
+                        onSpaceSelected(space.id)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
             }
         }
     }

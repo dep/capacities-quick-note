@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val preferencesManager = PreferencesManager(applicationContext)
+        preferencesManager.migrateFromLegacySpaceId()
         viewModelFactory = ViewModelFactory(preferencesManager)
 
         handleIntent(intent)

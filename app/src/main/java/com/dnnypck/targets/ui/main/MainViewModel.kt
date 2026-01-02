@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dnnypck.capacitiesquicknote.data.network.postToTarget
 import com.dnnypck.capacitiesquicknote.util.PreferencesManager
+import com.dnnypck.targets.data.model.Space
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +15,9 @@ data class MainScreenState(
     val content: String = "",
     val isSending: Boolean = false,
     val message: String? = null,
-    val hasCredentials: Boolean = false
+    val hasCredentials: Boolean = false,
+    val availableSpaces: List<Space> = emptyList(),
+    val selectedSpaceId: String? = null
 )
 
 class MainViewModel(
@@ -26,10 +29,39 @@ class MainViewModel(
 
     init {
         checkCredentials()
+        loadSpaces()
     }
 
     fun checkCredentials() {
         _state.update { it.copy(hasCredentials = preferencesManager.hasRequiredSettings()) }
+    }
+
+    private fun loadSpaces() {
+        val spaces = preferencesManager.getSpaces()
+        var selectedId = preferencesManager.getSelectedSpaceId()
+
+        // If no selection or selected space doesn't exist, pick first space
+        if (selectedId == null || spaces.none { it.id == selectedId }) {
+            selectedId = spaces.firstOrNull()?.id
+            selectedId?.let { preferencesManager.saveSelectedSpaceId(it) }
+        }
+
+        _state.update {
+            it.copy(
+                availableSpaces = spaces,
+                selectedSpaceId = selectedId
+            )
+        }
+    }
+
+    fun selectSpace(spaceId: String) {
+        preferencesManager.saveSelectedSpaceId(spaceId)
+        _state.update { it.copy(selectedSpaceId = spaceId) }
+    }
+
+    fun refreshSpaces() {
+        loadSpaces()
+        checkCredentials()
     }
 
     fun updateContent(content: String) {
@@ -40,13 +72,19 @@ class MainViewModel(
         val content = _state.value.content
         if (content.isBlank()) return
 
+        val selectedSpaceId = _state.value.selectedSpaceId
+        if (selectedSpaceId == null) {
+            _state.update { it.copy(message = "Please select a space") }
+            return
+        }
+
         if (!preferencesManager.hasRequiredSettings()) {
             _state.update { it.copy(message = "Please configure API settings first") }
             return
         }
 
         val apiKey = preferencesManager.getApiKey()
-        val spaceId = preferencesManager.getSpaceId()
+        val spaceId = selectedSpaceId
 
         viewModelScope.launch {
             _state.update { it.copy(isSending = true, message = null) }
