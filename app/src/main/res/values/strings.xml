@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Capacities Quick Note</string>
+    <string name="widget_description">Quick note widget for Capacities</string>
 </resources>

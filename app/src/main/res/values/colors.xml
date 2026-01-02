@@ -7,4 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Widget Colors -->
+    <color name="widget_background">#F5F5F5</color>
+    <color name="widget_item_background">#FFFFFF</color>
+    <color name="widget_text_primary">#000000</color>
+    <color name="widget_text_secondary">#888888</color>
 </resources>

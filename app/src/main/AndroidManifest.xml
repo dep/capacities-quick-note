@@ -31,6 +31,35 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- Widget Space Selection Activity -->
+        <activity
+            android:name=".widget.WidgetSpaceSelectionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CapacitiesQuickNote" />
+
+        <!-- Widget Note Input Activity -->
+        <activity
+            android:name=".widget.WidgetNoteActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CapacitiesQuickNote" />
+
+        <!-- Widget Service -->
+        <service
+            android:name=".widget.WidgetService"
+            android:exported="false" />
+
+        <!-- Widget Receiver -->
+        <receiver
+            android:name=".widget.CapacitiesWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/capacities_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
