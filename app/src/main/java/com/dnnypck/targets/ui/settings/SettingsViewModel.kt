@@ -63,11 +63,12 @@ class SettingsViewModel(
     fun saveApiKey() {
         val apiKey = _state.value.apiKey.trim()
         if (apiKey.isBlank()) {
-            _state.update { it.copy(message = "API Key cannot be empty") }
+            _state.update { it.copy(message = "API Key can't be empty. Paste your key from Capacities → Settings → Capacities API.") }
             return
         }
         preferencesManager.saveApiKey(apiKey)
-        _state.update { it.copy(message = "API Key saved") }
+        // Reflect the cleaned-up value (whitespace/new lines stripped) back into the field.
+        _state.update { it.copy(apiKey = preferencesManager.getApiKey(), message = "API Key saved") }
     }
 
     fun showAddSpaceDialog() {
@@ -87,7 +88,7 @@ class SettingsViewModel(
         val trimmedNickname = nickname?.trim()
 
         if (trimmedId.isBlank()) {
-            _state.update { it.copy(message = "Space ID cannot be empty") }
+            _state.update { it.copy(message = "Space ID can't be empty. Find it in Capacities → Settings → Space settings.") }
             return
         }
 

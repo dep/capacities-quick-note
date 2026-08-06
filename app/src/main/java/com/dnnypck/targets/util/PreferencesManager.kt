@@ -16,8 +16,17 @@ class PreferencesManager(context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    /**
+     * Removes all whitespace (spaces, tabs, and new lines) from a credential.
+     * API keys and Space IDs never contain whitespace, so this strips stray
+     * characters that sneak in when pasting from another app.
+     */
+    private fun sanitizeCredential(value: String): String {
+        return value.filterNot { it.isWhitespace() }
+    }
+
     fun saveApiKey(apiKey: String) {
-        prefs.edit().putString(KEY_API_KEY, apiKey).apply()
+        prefs.edit().putString(KEY_API_KEY, sanitizeCredential(apiKey)).apply()
     }
 
     fun getApiKey(): String {
@@ -25,7 +34,7 @@ class PreferencesManager(context: Context) {
     }
 
     fun saveSpaceId(spaceId: String) {
-        prefs.edit().putString(KEY_SPACE_ID, spaceId).apply()
+        prefs.edit().putString(KEY_SPACE_ID, sanitizeCredential(spaceId)).apply()
     }
 
     fun getSpaceId(): String {
@@ -38,7 +47,10 @@ class PreferencesManager(context: Context) {
 
     // Multiple spaces support
     fun saveSpaces(spaces: List<Space>) {
-        val jsonString = json.encodeToString(spaces)
+        // Strip whitespace/new lines from every Space ID before persisting so
+        // pasted IDs are always stored clean, whatever path they came in through.
+        val sanitizedSpaces = spaces.map { it.copy(id = sanitizeCredential(it.id)) }
+        val jsonString = json.encodeToString(sanitizedSpaces)
         prefs.edit().putString(KEY_SPACES, jsonString).apply()
     }
 

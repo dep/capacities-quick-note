@@ -112,7 +112,7 @@ class WidgetNoteActivity : ComponentActivity() {
                     onFailure = { error ->
                         Toast.makeText(
                             this@WidgetNoteActivity,
-                            "Failed: ${error.message}",
+                            "Couldn't save note: ${error.message}",
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -120,7 +120,7 @@ class WidgetNoteActivity : ComponentActivity() {
             } catch (e: Exception) {
                 Toast.makeText(
                     this@WidgetNoteActivity,
-                    "Error: ${e.message}",
+                    "Couldn't save note: ${e.message ?: e.javaClass.simpleName}",
                     Toast.LENGTH_LONG
                 ).show()
             }

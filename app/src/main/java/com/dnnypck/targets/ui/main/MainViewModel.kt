@@ -180,18 +180,15 @@ class MainViewModel(
                     },
                     onFailure = { error ->
                         val detailedError = buildString {
-                            appendLine("Failed to send to Capacities")
+                            appendLine("Couldn't save your note to Capacities.")
                             appendLine()
-                            appendLine("Error: ${error.message}")
+                            appendLine(error.message ?: "Unknown error")
                             appendLine()
                             appendLine("Request details:")
                             appendLine("Endpoint: $endpoint")
                             appendLine("Space ID: $spaceId")
-                            appendLine("API Key: ${apiKey.take(8)}...")
-                            appendLine()
-                            appendLine("Request body:")
-                            appendLine(body)
-                        }
+                            appendLine("API Key: ${if (apiKey.length >= 8) apiKey.take(8) + "..." else "(too short)"}")
+                        }.trimEnd()
                         _state.update {
                             it.copy(
                                 isSending = false,
@@ -204,7 +201,7 @@ class MainViewModel(
                 _state.update {
                     it.copy(
                         isSending = false,
-                        message = "Error: ${e.message}"
+                        message = "Couldn't save your note to Capacities: ${e.message ?: e.javaClass.simpleName}"
                     )
                 }
             }
